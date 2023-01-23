@@ -82,3 +82,8 @@ class LA(GridClass):
 	def __init__(self):
 		self.substitution_matrix = ["blosum62"]
 		self.strategy = ["striped"]
+
+
+class AAC(GridClass):
+	def __init__(self):
+		pass

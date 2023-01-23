@@ -1,13 +1,14 @@
 from matplotlib import pyplot as plt
-from sklearn.metrics import roc_auc_score, accuracy_score
+from sklearn.metrics import roc_auc_score, accuracy_score, matthews_corrcoef
 import seaborn as sns
 import os
 import glob
 import pickle
 from kreinamp.loaders import init_dataset, kernels, algos
 from kreinamp.globals import ROOTPATH
-from kreinamp.utils import load_test_data
+from kreinamp.utils import load_test_data, symbol2weight
 import numpy as np
+import pandas as pd
 
 strains = ["PA", "SA"]
 
@@ -32,15 +33,80 @@ def plot_lengths():
 	datasets = ["deepamp", "ampscan"]
 	for key in datasets:
 		dataset = init_dataset(key)
-		X = dataset.load()[0].reshape(-1).tolist()
-		lengths = [len(x) for x in X]
+		X, y = dataset.load()
+		pos_idx = np.where(y == 1)
+		neg_idx = np.where(y == -1)
+		X = X.reshape(-1)
+		X_pos = X[pos_idx].tolist()
+		X_neg = X[neg_idx].tolist()
+		data = []
+		for x in X_pos:
+			data.append({"Classification": "AMP", "Length": len(x)})
+		for x in X_neg:
+			data.append({"Classification": "non-AMP", "Length": len(x)})
+		data = pd.DataFrame(data)
+
 		plt.xlabel("Length")
-		g = sns.histplot(lengths)
-		g.set_yticks([x*50 for x in range(10)])
-		save_path = "./images/{0}_lengths.png".format(key)
+
+		if key == "deepamp":
+			g = sns.histplot(data, x="Length", hue="Classification", multiple="dodge", kde=True, alpha=0.6, kde_kws={"cut": 10, "clip": [0, 40]})
+			g.set_yticks([x*50 for x in range(6)])
+			g.set_xticks([x*5 for x in range(9)])
+		else:
+			g = sns.histplot(data, x="Length", hue="Classification", multiple="dodge", kde=True, alpha=0.6, kde_kws={"cut": 10, "clip": [0, 180]})
+			g.set_yticks([x*50 for x in range(6)])
+		save_path = "kreinamp/images/{0}_all_lengths.png".format(key)
 		plt.savefig(save_path)
 		print("Image saved at: {}".format(save_path))
 		plt.clf()
+	plot_aa_dist()
+
+
+def _aa_dist(X):
+	aa_counts = {}
+	for aa in symbol2weight.keys():
+		aa_counts[aa] = 0
+	for x in X:
+		unique = set(x)
+		for aa in unique:
+			aa_counts[aa] += x.count(aa)
+	return aa_counts
+
+
+def plot_aa_dist():
+	sns.set_style("white")
+	plt.rcParams.update({
+		"text.usetex": True})
+	datasets = ["deepamp", "ampscan"]
+	data = []
+	keymap = {
+		"deepamp": "DeepAMP",
+		"ampscan": "AMPScan"
+		}
+	for key in datasets:
+		dataset = init_dataset(key)
+		X, y = dataset.load()
+		X = X.reshape(-1)
+
+		for x in X.tolist():
+			for aa in x:
+				data.append({"Amino Acid": aa, "Dataset": keymap[key]})
+	data = pd.DataFrame(data)
+	data = data.sort_values(by=["Amino Acid"])
+
+	ampscan_proportions = pd.DataFrame(data[data["Dataset"] == "AMPScan"].value_counts(normalize=True).reset_index())
+	ampscan_proportions.columns = ["Amino Acid", "Dataset", "Proportion"]
+
+	deepamp_proportions = pd.DataFrame(data[data["Dataset"] == "DeepAMP"].value_counts(normalize=True).reset_index())
+	deepamp_proportions.columns = ["Amino Acid", "Dataset", "Proportion"]
+	data = pd.concat([deepamp_proportions, ampscan_proportions]).reset_index(drop=True)
+	data = data.sort_values(by="Amino Acid")
+	print(data)
+	g = sns.barplot(data=data, x="Amino Acid", y="Proportion", hue="Dataset", alpha=0.6, saturation=1)
+	save_path = "kreinamp/images/all_counts.png"
+	plt.savefig(save_path)
+	print("Image saved at: {}".format(save_path))
+	plt.clf()
 
 
 def dbaasp_predictions():
@@ -48,7 +114,7 @@ def dbaasp_predictions():
 	table_column_width = max(table_column_width, NUM_DECIMALS + 2)
 	column_format = "{0: >" + str(table_column_width) + "}"
 	numeric_format = "{0:." + str(NUM_DECIMALS) + "f}"
-	headers = ["Model", "AUC", "ACC"]
+	headers = ["Model", "AUC", "ACC", "MCC"]
 	row_length = len(headers)*table_column_width + (len(headers) - 1)*len(delimeter)
 	print("DBAASP Model performance on test set:\n")
 	print("-"*row_length)
@@ -73,6 +139,7 @@ def dbaasp_predictions():
 		seqs, names, true = load_test_data(strain)
 		row.append(numeric_format.format(roc_auc_score(y_true=true, y_score=score_pred)))
 		row.append(numeric_format.format(accuracy_score(y_true=true, y_pred=class_pred)))
+		row.append(numeric_format.format(matthews_corrcoef(y_true=true, y_pred=class_pred)))
 		print(delimeter.join([column_format.format(val) for val in row]))
 		print("-"*row_length)
 	print("")

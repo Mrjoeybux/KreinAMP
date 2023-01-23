@@ -17,9 +17,10 @@ import subprocess
 __logger = logging.getLogger("Experiment")
 
 algos_and_kernels = [
-	("LA", ["KSVM"]),
-	("EDIT", ["KSVM"]),
+    ("LA", ["KSVM"]),
+    ("EDIT", ["KSVM"]),
 	("GKM", ["SVM"]),
+	("AAC", ["SVM"])
 	]
 
 # Formatting options for log file

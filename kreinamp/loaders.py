@@ -1,7 +1,7 @@
 from kreinamp.data import AmpScanner, DeepAMP, SA25923_MAX, SA25923_MEAN, SA25923_MEDIAN, \
 	SA29213_MAX, SA29213_MEAN, SA29213_MEDIAN, PA27853_MAX, PA27853_MEAN, PA27853_MEDIAN
-from kreinamp.grid import SVM, KSVM, GKM, EDIT, LA
-from kreinamp.sklearn_kernel_function import LocalAlignment, NormalisedEditDistance, GappedKMer, GlobalAlignment
+from kreinamp.grid import SVM, KSVM, GKM, EDIT, LA, AAC
+from kreinamp.sklearn_kernel_function import LocalAlignment, NormalisedEditDistance, GappedKMer, GlobalAlignment, AminoAcidComposition
 from kreinamp.scoring_function import scoring_funcs__
 from kreinamp.learning_algorithms import SquareHingeKreinSVM, SquareHingeKernelSVM
 
@@ -14,7 +14,8 @@ kernels = {
 	"LA"  : LocalAlignment(),
 	"GA"  : GlobalAlignment(),
 	"EDIT": NormalisedEditDistance(),
-	"GKM" : GappedKMer()
+	"GKM" : GappedKMer(),
+	"AAC": AminoAcidComposition()
 	}
 
 datasets = [
@@ -35,7 +36,7 @@ datasets = [
 	]
 
 model_grids__ = [SVM, KSVM]
-kernel_grids__ = [GKM, EDIT, LA]
+kernel_grids__ = [GKM, EDIT, LA, AAC]
 
 
 def init_dataset(dataset_key):

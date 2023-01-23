@@ -1,5 +1,8 @@
 # Krein Support Vector Machine Classification of Antimicrobial Peptides
 
+This repository contains the code required to reproduce the results of our experiments. If you would like to make 
+predictions on a set of peptides, please see https://comp.chem.nottingham.ac.uk/KreinAMP/. 
+
 #### Installation Prerequisites
 - A working installation of anaconda (see https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)
 

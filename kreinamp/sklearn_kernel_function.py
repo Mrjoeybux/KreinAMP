@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from abc import ABCMeta, abstractmethod
 from fastsk import FastSK
+from kreinamp.utils import symbol2weight
 from fastsk.utils import Vocabulary
 import editdistance
 import parasail
@@ -213,6 +214,31 @@ class NormalisedEditDistance(KernelFunction):
 	def dot(self, x1, x2):
 		ed = editdistance.eval(x1, x2)
 		return 1 - (2*ed/(len(x1) + len(x2) + ed))
+
+	def get_params(self, deep=True):
+		return {}
+
+
+class AminoAcidComposition(KernelFunction):
+
+	def _feature_vec(self, peptide):
+		return [peptide.count(amino_acid) for amino_acid in symbol2weight.keys()]
+
+	def feature_mat(self, X):
+		return np.array([self._feature_vec(x) for x in X])
+
+	def compute_square_kernel_matrix(self, X):
+		F = self.feature_mat(X)
+		K = F @ F.T
+		return K.astype("float")
+
+	def compute_rectangular_kernel_matrix(self, X1, X2):
+		# X1 - test
+		# X2 - train
+		F1 = self.feature_mat(X1)
+		F2 = self.feature_mat(X2)
+		K = F1 @ F2.T
+		return K.astype("float")
 
 	def get_params(self, deep=True):
 		return {}
